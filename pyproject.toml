@@ -1,0 +1,30 @@
+[build-system]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "housing_prediction"
+version = "0.0.1"
+description = "use web scraping and apply decision tree models to predict housing prices"
+authors = [
+  { name = "Himanshu Mittal" },
+]
+license = { file = "LICENSE" }
+readme = "README.md"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License"
+]
+requires-python = "~=3.10"
+dependencies = [
+    "ipykernel>=6.29.5",
+    "loguru>=0.7.3",
+    "numpy>=2.2.1",
+    "polars>=1.19.0",
+    "pre-commit>=4.0.1",
+    "scikit-learn>=1.6.0",
+    "typer>=0.15.1",
+]
+
+[tool.ruff]
+line-length = 80
