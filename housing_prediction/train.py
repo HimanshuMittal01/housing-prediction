@@ -2,7 +2,8 @@
 
 import numpy as np
 from loguru import logger
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import KFold
+from sklearn.impute import IterativeImputer
 from sklearn.metrics import get_scorer
 
 from housing_prediction.models import build_model, save_model
@@ -16,6 +17,7 @@ def train(
     cv=5,  # can also use train-test
     metrics=[],
     model_path=None,
+    random_state=42,
 ):
     """Train a model and compute evaluation metrics.
 
@@ -39,34 +41,46 @@ def train(
         dict: Evaluation metrics.
     """
     # Perform CV
-    skf = StratifiedKFold(cv)
+    kf = KFold(cv, random_state=random_state, shuffle=True)
     scorers = {metric: get_scorer(metric)._score_func for metric in metrics}
 
     train_scores = {metric: [] for metric in metrics}
     valid_scores = {metric: [] for metric in metrics}
     oof_preds = np.zeros(len(y), dtype=int)
     models = []
-    for fold, (tridx, validx) in enumerate(skf.split(X, y)):
+    for fold, (tridx, validx) in enumerate(kf.split(X, y)):
         model_ = build_model(model_params)
 
-        model_.fit(
-            X[list(tridx)].to_numpy(),
-            y[list(tridx)].to_numpy().ravel(),
+        X_train, y_train = X[list(tridx)], y[list(tridx)]
+        X_valid, y_valid = X[list(validx)], y[list(validx)]
+
+        # Impute missing values
+        imp = IterativeImputer(
+            max_iter=10, random_state=random_state, sample_posterior=True
         )
+        imp.fit(X_train.select(["bedrooms", "bathrooms", "square_footage"]))
+        X_train[["bedrooms", "bathrooms", "square_footage"]] = imp.transform(
+            X_train.select(["bedrooms", "bathrooms", "square_footage"])
+        ).round(0)
+        X_valid[["bedrooms", "bathrooms", "square_footage"]] = imp.transform(
+            X_valid.select(["bedrooms", "bathrooms", "square_footage"])
+        ).round(0)
+
+        # Train model
+        model_.fit(X_train.to_numpy(), y_train.to_numpy().ravel())
         models.append(model_)
 
-        y_pred = model_.predict(X[list(validx)].to_numpy())
+        # Predict on test dataset
+        y_pred = model_.predict(X_valid.to_numpy())
         oof_preds[validx] = y_pred
 
         for metric in metrics:
-            valid_score = scorers[metric](
-                y[list(validx)].to_numpy().ravel(), y_pred
-            )
+            valid_score = scorers[metric](y_valid.to_numpy().ravel(), y_pred)
             valid_scores[metric].append(valid_score)
 
             train_score = scorers[metric](
-                y[list(tridx)].to_numpy().ravel(),
-                model_.predict(X[list(tridx)].to_numpy()),
+                y_train.to_numpy().ravel(),
+                model_.predict(X_train.to_numpy()),
             )
             train_scores[metric].append(train_score)
 

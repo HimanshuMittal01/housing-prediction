@@ -10,9 +10,13 @@ def build_model(model_config=None):
     Returns:
         object: Model object.
     """
-    from sklearn.linear_model import LogisticRegression
+    from sklearn.tree import DecisionTreeRegressor
 
-    return LogisticRegression()
+    # return RandomForestRegressor(n_estimators=100, max_depth=5, min_samples_split=10)
+
+    return DecisionTreeRegressor(
+        max_depth=5,
+    )
 
 
 def save_model(model, path):

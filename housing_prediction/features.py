@@ -1,5 +1,6 @@
 """Data preprocessing, transformation, imputation, and feature engineering."""
 
+import polars as pl
 from loguru import logger
 
 from housing_prediction.utils import read_tabular_data, write_tabular_data
@@ -19,7 +20,32 @@ def feature_engineering_train(df, output_path=None):
     logger.info("Engineering features...")
 
     ### Feature engineering START ###
-    feature_cols = []
+
+    # Impute square footage with median
+    df = df.with_columns(
+        pl.col("square_footage").fill_null(pl.col("square_footage").median()),
+        pl.col("bedrooms").fill_null(pl.col("bedrooms").median()),
+        pl.col("bathrooms").fill_null(pl.col("bathrooms").median()),
+    )
+
+    # Extract zip code from address
+    df = df.with_columns(
+        pl.col("address").str.extract(r"IL (\d{5})$").alias("zip_code")
+    )
+
+    # Fix specific address where zip codes are unavailable (did google search for it)
+    df = df.with_columns(
+        zip_code=pl.when(pl.col("address") == "Madison FP Plan, Madison")
+        .then(pl.lit("60601"))
+        .otherwise(pl.col("zip_code"))
+    )
+
+    # Convert zip code to one hot encoding
+    df = df.to_dummies("zip_code")
+
+    feature_cols = ["bedrooms", "bathrooms", "square_footage"] + [
+        col for col in df.columns if col.startswith("zip_code")
+    ]
     ### Feature engineering END ###
 
     logger.info("Feature engineering complete.")

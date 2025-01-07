@@ -3,9 +3,10 @@
 Apache Software License 2.0
 Copyright (c) 2025, Himanshu Mittal"""
 
+import polars as pl
 from loguru import logger
 
-from housing_prediction.utils import read_tabular_data, write_tabular_data
+from housing_prediction.utils import write_tabular_data
 
 
 def load_data(
@@ -24,7 +25,25 @@ def load_data(
     logger.info("Processing dataset...")
 
     ### Preprocessing START ###
-    df = read_tabular_data(input_path)
+    df = pl.read_csv(input_path, null_values=["N/A", "null"])
+
+    # Clean price column; remove '$' and ',' and convert to float
+    df = df.with_columns(
+        pl.col("price")
+        .replace(
+            {
+                "$279,000+": "279000",
+                "Est. $138.8K": "138800",
+                "Est. $290K": "290000",
+            }
+        )
+        .str.replace("$", "", literal=True)
+        .str.replace_all(",", "")
+        .cast(pl.Float32)
+    )
+    df = df.with_columns(
+        pl.col("square_footage").cast(pl.Float32, strict=False)
+    )
     ### Preprocessing END ###
 
     logger.success("Processing dataset complete.")
