@@ -3,7 +3,6 @@
 import numpy as np
 from loguru import logger
 from sklearn.model_selection import KFold
-from sklearn.impute import IterativeImputer
 from sklearn.metrics import get_scorer
 
 from housing_prediction.models import build_model, save_model
@@ -53,18 +52,6 @@ def train(
 
         X_train, y_train = X[list(tridx)], y[list(tridx)]
         X_valid, y_valid = X[list(validx)], y[list(validx)]
-
-        # Impute missing values
-        imp = IterativeImputer(
-            max_iter=10, random_state=random_state, sample_posterior=True
-        )
-        imp.fit(X_train.select(["bedrooms", "bathrooms", "square_footage"]))
-        X_train[["bedrooms", "bathrooms", "square_footage"]] = imp.transform(
-            X_train.select(["bedrooms", "bathrooms", "square_footage"])
-        ).round(0)
-        X_valid[["bedrooms", "bathrooms", "square_footage"]] = imp.transform(
-            X_valid.select(["bedrooms", "bathrooms", "square_footage"])
-        ).round(0)
 
         # Train model
         model_.fit(X_train.to_numpy(), y_train.to_numpy().ravel())

@@ -12,10 +12,9 @@ def build_model(model_config=None):
     """
     from sklearn.tree import DecisionTreeRegressor
 
-    # return RandomForestRegressor(n_estimators=100, max_depth=5, min_samples_split=10)
-
     return DecisionTreeRegressor(
-        max_depth=5,
+        min_samples_leaf=10,
+        random_state=42,
     )
 
 
