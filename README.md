@@ -1,10 +1,15 @@
-# housing-prediction
+# Chicago Housing Prediction
 
-<a target="_blank" href="https://cookiecutter-data-science.drivendata.org/">
-    <img src="https://img.shields.io/badge/CCDS-Project%20template-328F97?logo=cookiecutter" />
-</a>
+The objective of this assignment is to predict housing prices in Chicago using tree-based machine learning models. The dataset, scraped from Zillow, contains various property features. The analysis aims to clean, explore, and model the data to generate actionable insights. 
 
-use web scraping and apply decision tree models to predict housing prices
+The model achieved 0.842 R<sup>2</sup> score on the OOF predictions in K=5 Fold cross validation. More details in [Project Report](https://docs.google.com/document/d/1NbbfePTH5WJRvjWV-u8L2qZP-bhk7Cda3dx9nMFsPN8/edit?usp=sharing)
+
+**Setup environment:**
+```bash
+uv venv --python 3.10
+source .venv/bin/activate
+uv sync
+```
 
 ## Project Organization
 
@@ -13,18 +18,12 @@ use web scraping and apply decision tree models to predict housing prices
 ├── Makefile           <- Makefile with convenience commands like `make data` or `make train`
 ├── README.md          <- The top-level README for developers using this project.
 ├── data
-│   ├── external       <- Data from third party sources.
-│   ├── interim        <- Intermediate data that has been transformed.
-│   ├── processed      <- The final, canonical data sets for modeling.
-│   └── raw            <- The original, immutable data dump.
+│   ├── raw            <- The original, immutable data dump.
+│   └── processed      <- The final, canonical data sets for modeling.
 │
 ├── docs               <- A default mkdocs project; see www.mkdocs.org for details
-│
-├── models             <- Trained and serialized models, model predictions, or model summaries
-│
-├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
-│                         the creator's initials, and a short `-` delimited description, e.g.
-│                         `1.0-jqp-initial-data-exploration`.
+|
+├── notebooks          <- Jupyter notebooks.
 │
 ├── pyproject.toml     <- Project configuration file with package metadata for 
 │                         housing_prediction and configuration for tools like black
@@ -45,16 +44,17 @@ use web scraping and apply decision tree models to predict housing prices
     │
     ├── config.py               <- Store useful variables and configuration
     │
-    ├── dataset.py              <- Scripts to download or generate data
+    ├── dataset.py              <- Preprocess data
     │
     ├── features.py             <- Code to create features for modeling
     │
-    ├── modeling                
-    │   ├── __init__.py 
-    │   ├── predict.py          <- Code to run model inference with trained models          
-    │   └── train.py            <- Code to train models
+    ├── models.py               <- Build and serialize models
     │
-    └── plots.py                <- Code to create visualizations
+    ├── predict.py              <- Code to run model inference with trained models
+    │
+    ├── train.py                <- Code to train models
+    │
+    └── utils.py                <- Code to create visualizations
 ```
 
 --------
