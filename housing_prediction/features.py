@@ -21,31 +21,85 @@ def feature_engineering_train(df, output_path=None):
 
     ### Feature engineering START ###
 
-    # Impute square footage with median
     df = df.with_columns(
-        pl.col("square_footage").fill_null(pl.col("square_footage").median()),
-        pl.col("bedrooms").fill_null(pl.col("bedrooms").median()),
-        pl.col("bathrooms").fill_null(pl.col("bathrooms").median()),
+        (pl.col("bedrooms") + pl.col("bathrooms")).alias("B_plus_B"),
+        (pl.col("bedrooms") * pl.col("bathrooms")).alias("B_prod_B"),
+        (pl.col("bedrooms") / pl.col("bathrooms")).alias("B_div_B"),
+        (pl.col("square_footage") / pl.col("bedrooms")).alias("sq_div_bed"),
+        (pl.col("square_footage") / pl.col("bathrooms")).alias("sq_div_bath"),
+        (pl.col("square_footage").median().over("zipcode")).alias(
+            "median_sq_ft_zipcode"
+        ),
+        (pl.col("square_footage").mean().over("zipcode")).alias(
+            "mean_sq_ft_zipcode"
+        ),
+        (pl.col("square_footage").std().over("zipcode")).alias(
+            "std_sq_ft_zipcode"
+        ),
+        (pl.col("square_footage").min().over("zipcode")).alias(
+            "min_sq_ft_zipcode"
+        ),
+        (pl.col("square_footage").max().over("zipcode")).alias(
+            "max_sq_ft_zipcode"
+        ),
+        (pl.col("price").median().over("zipcode")).alias(
+            "median_price_zipcode"
+        ),
+        (pl.col("price").mean().over("zipcode")).alias("mean_price_zipcode"),
+        (pl.col("price").std().over("zipcode")).alias("std_price_zipcode"),
+        (pl.col("price").min().over("zipcode")).alias("min_price_zipcode"),
+        (pl.col("price").max().over("zipcode")).alias("max_price_zipcode"),
+        (
+            (pl.col("price") / pl.col("square_footage"))
+            .median()
+            .over("zipcode")
+        ).alias("median_price_per_sq_ft_zipcode"),
+        (
+            (pl.col("price") / pl.col("square_footage")).mean().over("zipcode")
+        ).alias("mean_price_per_sq_ft_zipcode"),
+        (
+            (pl.col("price") / pl.col("square_footage")).std().over("zipcode")
+        ).alias("std_price_per_sq_ft_zipcode"),
+        (
+            (pl.col("price") / pl.col("square_footage")).min().over("zipcode")
+        ).alias("min_price_per_sq_ft_zipcode"),
+        (
+            (pl.col("price") / pl.col("square_footage")).max().over("zipcode")
+        ).alias("max_price_per_sq_ft_zipcode"),
     )
 
-    # Extract zip code from address
-    df = df.with_columns(
-        pl.col("address").str.extract(r"IL (\d{5})$").alias("zip_code")
+    # One hot encode zip code
+    # X.drop_in_place('zipcode')
+    df = df.to_dummies("zipcode")
+
+    # Define feature columns
+    feature_cols = (
+        ["bedrooms", "bathrooms", "square_footage"]
+        + [col for col in df.columns if col.startswith("zipcode")]
+        + [
+            "B_plus_B",
+            "B_prod_B",
+            "B_div_B",
+            "sq_div_bed",
+            "sq_div_bath",
+            "median_sq_ft_zipcode",
+            "mean_sq_ft_zipcode",
+            "std_sq_ft_zipcode",
+            "min_sq_ft_zipcode",
+            "max_sq_ft_zipcode",
+            "median_price_zipcode",
+            "mean_price_zipcode",
+            "std_price_zipcode",
+            "min_price_zipcode",
+            "max_price_zipcode",
+            "median_price_per_sq_ft_zipcode",
+            "mean_price_per_sq_ft_zipcode",
+            "std_price_per_sq_ft_zipcode",
+            "min_price_per_sq_ft_zipcode",
+            "max_price_per_sq_ft_zipcode",
+        ]
     )
 
-    # Fix specific address where zip codes are unavailable (did google search for it)
-    df = df.with_columns(
-        zip_code=pl.when(pl.col("address") == "Madison FP Plan, Madison")
-        .then(pl.lit("60601"))
-        .otherwise(pl.col("zip_code"))
-    )
-
-    # Convert zip code to one hot encoding
-    df = df.to_dummies("zip_code")
-
-    feature_cols = ["bedrooms", "bathrooms", "square_footage"] + [
-        col for col in df.columns if col.startswith("zip_code")
-    ]
     ### Feature engineering END ###
 
     logger.info("Feature engineering complete.")

@@ -25,9 +25,11 @@ def load_data(
     logger.info("Processing dataset...")
 
     ### Preprocessing START ###
+
+    # Read the dataset
     df = pl.read_csv(input_path, null_values=["N/A", "null"])
 
-    # Clean price column; remove '$' and ',' and convert to float
+    # Clean the price column
     df = df.with_columns(
         pl.col("price")
         .replace(
@@ -41,9 +43,37 @@ def load_data(
         .str.replace_all(",", "")
         .cast(pl.Float32)
     )
+
+    # Location of the property also matters, let's extract the zip code from the address
+    df = df.with_columns(
+        pl.col("address").str.extract(r"IL (\d{5})$").alias("zipcode")
+    )
+
+    # Fill in the missing zip code (found using Google Search)
+    df = df.with_columns(
+        zipcode=pl.when(pl.col("address") == "Madison FP Plan, Madison")
+        .then(pl.lit("60601"))
+        .otherwise(pl.col("zipcode"))
+    )
+
+    # Clean the square footage column, convert unknown values to null
     df = df.with_columns(
         pl.col("square_footage").cast(pl.Float32, strict=False)
     )
+
+    # Remove outliers
+    df = df.filter(
+        ~pl.col("address").is_in(
+            [
+                "1355 N Astor St, Chicago, IL 60610",
+                "415 E North Water St #3205, Chicago, IL 60611",
+            ]
+        )  # extremely high sq ft given less number of bedrooms
+    ).filter(
+        pl.col("zipcode")
+        != "60602"  # missing bedrooms for all properties in this zip code (2 rows)
+    )
+
     ### Preprocessing END ###
 
     logger.success("Processing dataset complete.")
