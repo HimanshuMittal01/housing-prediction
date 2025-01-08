@@ -1,7 +1,7 @@
 """Build, save and load models for the pipeline."""
 
 
-def build_model(model_config=None):
+def build_model(model_params={}):
     """Build a model with the specified configuration
 
     Args:
@@ -10,12 +10,9 @@ def build_model(model_config=None):
     Returns:
         object: Model object.
     """
-    from sklearn.tree import DecisionTreeRegressor
+    from xgboost import XGBRFRegressor
 
-    return DecisionTreeRegressor(
-        min_samples_leaf=10,
-        random_state=42,
-    )
+    return XGBRFRegressor(**model_params, random_state=42)
 
 
 def save_model(model, path):

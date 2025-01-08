@@ -7,16 +7,16 @@ from sklearn.metrics import get_scorer
 
 from housing_prediction.models import build_model, save_model
 from housing_prediction.utils import read_tabular_data
+from sklearn.preprocessing import QuantileTransformer
 
 
 def train(
     X,
     y,
-    model_params=None,
+    model_params={},
     cv=5,  # can also use train-test
     metrics=[],
     model_path=None,
-    random_state=42,
 ):
     """Train a model and compute evaluation metrics.
 
@@ -32,7 +32,6 @@ def train(
         model_params: Model parameters.
         cv (int, optional): Number of cross-validation folds. Defaults to 5.
         eval_metrics (list, optional): Evaluation metrics to compute. Defaults to [].
-        model_path: Path to save the model. Defaults to None.
 
     Returns:
         object: Trained model.
@@ -40,7 +39,7 @@ def train(
         dict: Evaluation metrics.
     """
     # Perform CV
-    kf = KFold(cv, random_state=random_state, shuffle=True)
+    kf = KFold(cv)
     scorers = {metric: get_scorer(metric)._score_func for metric in metrics}
 
     train_scores = {metric: [] for metric in metrics}
@@ -53,7 +52,21 @@ def train(
         X_train, y_train = X[list(tridx)], y[list(tridx)]
         X_valid, y_valid = X[list(validx)], y[list(validx)]
 
+        qtr = QuantileTransformer(n_quantiles=100)
+        transformed_sq_footage = qtr.fit_transform(
+            X_train["square_footage"].to_numpy().reshape(-1, 1)
+        )
+        X_train = X_train.with_columns(square_footage=transformed_sq_footage)
+        X_valid = X_valid.with_columns(
+            square_footage=qtr.transform(
+                X_valid["square_footage"].to_numpy().reshape(-1, 1)
+            )
+        )
+
         # Train model
+        # set sample weight 2 for properties having square footage more than 5000 else 1
+        # sample_weight = np.where(X_train['square_footage'] > 5000, 5, 1)
+        # model_.fit(X_train.to_numpy(), y_train.to_numpy().ravel(), sample_weight=sample_weight)
         model_.fit(X_train.to_numpy(), y_train.to_numpy().ravel())
         models.append(model_)
 
@@ -71,8 +84,8 @@ def train(
             )
             train_scores[metric].append(train_score)
 
-            logger.info(
-                f"Fold: {fold+1}/{cv}, Train {metric}: {train_score}, Valid {metric}: {valid_score}"
+            print(
+                f"Fold: {fold+1}/{cv}, Train {metric}: {train_score:.3f}, Valid {metric}: {valid_score:.3f}"
             )
 
     # Compute CV mean and standard deviation of train and valid scores
@@ -92,6 +105,7 @@ def train(
     # Compute OOF scores
     oof_score = {metric: scorers[metric](y, oof_preds) for metric in metrics}
 
+    # Compute metrics on average of all models
     evaluation_metrics = {
         "CV Mean Train score": cv_mean_train_scores,
         "CV Std Train score": cv_std_train_scores,
